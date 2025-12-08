@@ -61,7 +61,7 @@ class YouTubeDownloader(QWidget):
             "3. 원하는 화질을 선택하고 다운로드하세요."
         )
         guide_desc.setObjectName("GuideDesc")
-        guide_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        guide_desc.setAlignment(Qt.AlignmentFlag.AlignLeft)
         
         guide_layout.addWidget(guide_title)
         guide_layout.addWidget(guide_desc)
@@ -238,7 +238,7 @@ class YouTubeDownloader(QWidget):
 
             /* 사용법 가이드 */
             QFrame#GuideFrame {
-                background-color: #1E1E1E;
+                background-color: #212121;
                 border-radius: 12px;
                 border: 1px dashed #444444;
                 padding: 20px;
@@ -249,11 +249,13 @@ class YouTubeDownloader(QWidget):
                 font-weight: bold;
                 color: #64B5F6;
                 margin-bottom: 5px;
+                background-color: transparent;
             }
             QLabel#GuideDesc {
                 font-size: 14px;
                 color: #CCCCCC;
                 line-height: 1.6;
+                background-color: transparent;
             }
 
             /* 정보 카드 */
@@ -275,26 +277,31 @@ class YouTubeDownloader(QWidget):
                 font-size: 18px;
                 font-weight: bold;
                 color: #FFFFFF;
+                background-color: transparent;
             }
             
             QLabel#ChannelLabel {
                 font-size: 14px;
                 color: #AAAAAA;
+                background-color: transparent;
             }
             
             QLabel#StatsLabel {
                 font-size: 13px;
                 color: #888888;
+                background-color: transparent;
             }
 
             QLabel#DownloadTitle {
                 font-size: 16px;
                 color: #EEEEEE;
+                background-color: transparent;
             }
             
             QLabel#PercentageLabel {
                 font-size: 14px;
                 color: #CCCCCC;
+                background-color: transparent;
             }
             
             /* 라디오 버튼 */
@@ -349,6 +356,7 @@ class YouTubeDownloader(QWidget):
                 color: #AAAAAA;
                 font-size: 14px;
                 margin-bottom: 5px;
+                background-color: transparent;
             }
         """)
 
