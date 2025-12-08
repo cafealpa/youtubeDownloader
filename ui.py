@@ -1,426 +1,424 @@
 import requests
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
-                             QLineEdit, QPushButton, QLabel, QMessageBox, QFrame, QProgressBar,
-                             QRadioButton, QButtonGroup, QGroupBox)
-from PyQt6.QtGui import QPixmap
-from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, 
+    QLineEdit, QPushButton, QLabel, QMessageBox, QFrame, QProgressBar,
+    QSpacerItem, QSizePolicy, QRadioButton, QButtonGroup
+)
+from PyQt6.QtGui import QPixmap, QIcon
+from PyQt6.QtCore import Qt, pyqtSlot
 from logic import Worker
 
 class YouTubeDownloader(QWidget):
     def __init__(self):
-        """애플리케이션 메인 윈도우를 초기화합니다."""
         super().__init__()
-        self.initUI()
+        self.worker = None
         self.current_video_info = None
-
+        self.quality_btn_group = QButtonGroup()
+        self.initUI()
+        
     def initUI(self):
-        """
-        UI 컴포넌트들을 생성하고 레이아웃을 구성합니다.
-        모던 다크 테마 스타일시트도 정의합니다.
-        """
-        self.setWindowTitle('YouTube Downloader Pro')
-        self.setGeometry(300, 300, 800, 600)
-
-        # Main Layout
-        main_layout = QVBoxLayout()
-        main_layout.setSpacing(20)
-        main_layout.setContentsMargins(30, 30, 30, 30)
-
-        # --- Header ---
-        header_label = QLabel("YOUTUBE DOWNLOADER")
-        header_label.setObjectName("header")
-        header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(header_label)
-
-        # --- Input Area ---
-        input_frame = QFrame()
-        input_frame.setObjectName("card")
-        input_layout = QHBoxLayout(input_frame)
-        input_layout.setContentsMargins(15, 15, 15, 15)
+        """UI 구성 및 스타일 설정"""
+        self.setWindowTitle('YouTube Downloader')
+        self.setMinimumSize(800, 600)
+        
+        # 메인 레이아웃 (전체 수직 배치)
+        main_layout = QVBoxLayout(self)
+        main_layout.setSpacing(25)
+        main_layout.setContentsMargins(40, 40, 40, 40)
+        
+        # 1. 상단: 검색 영역 (입력창 + 조회 버튼)
+        search_layout = QHBoxLayout()
+        search_layout.setSpacing(15)
         
         self.url_input = QLineEdit()
-        self.url_input.setPlaceholderText('🔗 여기에 유튜브 링크를 붙여넣으세요')
+        self.url_input.setPlaceholderText('Paste YouTube Video URL')
+        self.url_input.setFixedHeight(50)
         
         self.search_btn = QPushButton('조회')
-        self.search_btn.setObjectName("action_btn")
+        self.search_btn.setFixedSize(100, 50)
         self.search_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.search_btn.setFixedWidth(100)
         self.search_btn.clicked.connect(self.search_video)
         
-        input_layout.addWidget(self.url_input)
-        input_layout.addWidget(self.search_btn)
-        main_layout.addWidget(input_frame)
-
-        # --- Info Area (Card Style) ---
+        search_layout.addWidget(self.url_input)
+        search_layout.addWidget(self.search_btn)
+        
+        main_layout.addLayout(search_layout)
+        
+        # 2. 중단: 비디오 정보 카드 (카드 스타일)
         self.info_frame = QFrame()
-        self.info_frame.setObjectName("card")
-        self.info_frame.setVisible(False) # Initially hidden
+        self.info_frame.setObjectName("InfoCard")
+        self.info_frame.setVisible(False)
+        self.info_frame.setFixedHeight(200)
         
-        # Horizontal Layout for Image + Text
         info_layout = QHBoxLayout(self.info_frame)
-        info_layout.setContentsMargins(15, 15, 15, 15)
-        info_layout.setSpacing(20)
+        info_layout.setSpacing(25)
+        info_layout.setContentsMargins(20, 20, 20, 20)
         
-        # Thumbnail (Left)
+        # 썸네일 (Placeholder)
         self.thumbnail_label = QLabel()
-        self.thumbnail_label.setFixedSize(320, 180)
-        self.thumbnail_label.setStyleSheet("background-color: #000; border-radius: 8px;")
+        self.thumbnail_label.setFixedSize(280, 158)  # 16:9 비율
+        self.thumbnail_label.setStyleSheet("background-color: #333333; border-radius: 8px;")
         self.thumbnail_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
-        # Text Info (Right)
-        text_info_layout = QVBoxLayout()
-        text_info_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        # 정보 텍스트 영역
+        text_layout = QVBoxLayout()
+        text_layout.setSpacing(8)
+        text_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         
         self.title_label = QLabel("-")
-        self.title_label.setObjectName("title")
+        self.title_label.setObjectName("TitleLabel")
         self.title_label.setWordWrap(True)
         
-        self.view_count_label = QLabel("👁️ 조회수: -")
-        self.like_count_label = QLabel("👍 좋아요: -")
+        self.channel_label = QLabel("-")
+        self.channel_label.setObjectName("ChannelLabel")
         
-        text_info_layout.addWidget(self.title_label)
-        text_info_layout.addSpacing(10)
-        text_info_layout.addWidget(self.view_count_label)
-        text_info_layout.addWidget(self.like_count_label)
-        text_info_layout.addStretch()
-
+        self.stats_label = QLabel("-") 
+        self.stats_label.setObjectName("StatsLabel")
+        
+        text_layout.addWidget(self.title_label)
+        text_layout.addWidget(self.channel_label)
+        text_layout.addWidget(self.stats_label)
+        
         info_layout.addWidget(self.thumbnail_label)
-        info_layout.addLayout(text_info_layout)
-        main_layout.addWidget(self.info_frame)
-
-        # --- Options Area ---
-        self.quality_group = QGroupBox("다운로드 옵션")
-        self.quality_layout = QHBoxLayout() # Horizontal options
-        self.quality_group.setLayout(self.quality_layout)
-        self.quality_group.setVisible(False)
-        main_layout.addWidget(self.quality_group)
+        info_layout.addLayout(text_layout)
+        info_layout.addStretch()
         
-        self.quality_btn_group = QButtonGroup()
-
-        # --- Status & Progress ---
-        self.status_label = QLabel("준비됨")
+        main_layout.addWidget(self.info_frame)
+        
+        # 2-1. 화질 선택 옵션 영역 (카드 아래)
+        self.quality_frame = QFrame()
+        self.quality_frame.setVisible(False) 
+        self.quality_layout = QHBoxLayout(self.quality_frame)
+        self.quality_layout.setContentsMargins(0, 10, 0, 10)
+        self.quality_layout.setSpacing(15)
+        self.quality_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        main_layout.addWidget(self.quality_frame)
+        
+        # 2-2. 다운로드 프로그래스 카드 (다운로드 중일 때 표시)
+        self.progress_frame = QFrame()
+        self.progress_frame.setObjectName("ProgressCard")
+        self.progress_frame.setVisible(False)
+        self.progress_frame.setFixedHeight(120)
+        
+        progress_layout = QVBoxLayout(self.progress_frame)
+        progress_layout.setContentsMargins(25, 25, 25, 25)
+        progress_layout.setSpacing(15)
+        progress_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        
+        # 다운로드 중인 파일명
+        self.download_title_label = QLabel("Downloading...")
+        self.download_title_label.setObjectName("DownloadTitle")
+        progress_layout.addWidget(self.download_title_label)
+        
+        # 바 + 퍼센트
+        bar_layout = QHBoxLayout()
+        bar_layout.setSpacing(15)
+        
+        self.styled_progress_bar = QProgressBar()
+        self.styled_progress_bar.setFixedHeight(10)
+        self.styled_progress_bar.setTextVisible(False)
+        self.styled_progress_bar.setRange(0, 100)
+        self.styled_progress_bar.setValue(0)
+        
+        self.percentage_label = QLabel("0% Downloaded")
+        self.percentage_label.setObjectName("PercentageLabel")
+        self.percentage_label.setFixedWidth(120)
+        self.percentage_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        
+        bar_layout.addWidget(self.styled_progress_bar)
+        bar_layout.addWidget(self.percentage_label)
+        
+        progress_layout.addLayout(bar_layout)
+        
+        main_layout.addWidget(self.progress_frame)
+        
+        # 여백 (Spacer)
+        main_layout.addStretch()
+        
+        # 상태 메시지 (간단 알림용)
+        self.status_label = QLabel("")
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.status_label.setObjectName("status")
+        self.status_label.setObjectName("StatusLabel")
         main_layout.addWidget(self.status_label)
 
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setVisible(False)
-        self.progress_bar.setTextVisible(True)
-        self.progress_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(self.progress_bar)
-
-        # --- Action Buttons ---
-        buttons_layout = QHBoxLayout()
-        
-        self.download_btn = QPushButton('다운로드 시작')
-        self.download_btn.setObjectName("action_btn")
+        # 3. 하단: 다운로드 버튼
+        self.download_btn = QPushButton("⬇ 다운로드")
+        self.download_btn.setObjectName("DownloadBtn")
+        self.download_btn.setFixedHeight(60)
         self.download_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.download_btn.setMinimumHeight(50)
         self.download_btn.clicked.connect(self.download_video)
-        self.download_btn.setEnabled(False)
+        self.download_btn.setEnabled(False) 
         
-        self.cancel_btn = QPushButton('취소')
-        self.cancel_btn.setObjectName("cancel_btn")
-        self.cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.cancel_btn.setMinimumHeight(50)
-        self.cancel_btn.clicked.connect(self.cancel_download)
-        self.cancel_btn.setVisible(False)
+        main_layout.addWidget(self.download_btn)
+        
+        self.apply_styles()
 
-        buttons_layout.addWidget(self.download_btn)
-        buttons_layout.addWidget(self.cancel_btn)
-        main_layout.addLayout(buttons_layout)
-
-        main_layout.addStretch()
-        self.setLayout(main_layout)
-
-        # --- Stylesheet (Modern Dark Theme) ---
+    def apply_styles(self):
+        """QSS 스타일시트 적용"""
         self.setStyleSheet("""
             QWidget {
-                background-color: #181818;
-                color: #ffffff;
+                background-color: #121212;
+                color: #FFFFFF;
                 font-family: 'Segoe UI', sans-serif;
-                font-size: 14px;
             }
             
-            /* Header */
-            QLabel#header {
-                font-size: 24px;
-                font-weight: bold;
-                color: #ff0000;
-                letter-spacing: 2px;
-                margin-bottom: 10px;
-            }
-
-            /* Cards */
-            QFrame#card {
-                background-color: #212121;
-                border: 1px solid #303030;
-                border-radius: 12px;
-            }
-
-            /* Input */
+            /* 검색 입력창 */
             QLineEdit {
-                background-color: #121212;
-                border: 2px solid #303030;
+                background-color: #252525;
+                border: 1px solid #333333;
                 border-radius: 8px;
-                padding: 12px;
-                color: #ffffff;
-                font-size: 15px;
+                padding: 0 15px;
+                font-size: 16px;
+                color: #FFFFFF;
             }
             QLineEdit:focus {
-                border: 2px solid #ff0000;
-            }
-
-            /* Buttons */
-            QPushButton {
-                background-color: #303030;
-                border: none;
-                border-radius: 8px;
-                padding: 12px;
-                font-weight: bold;
-                color: #aaaaaa;
-            }
-            QPushButton:hover {
-                background-color: #404040;
-                color: #ffffff;
+                border: 1px solid #555555;
             }
             
-            QPushButton#action_btn {
-                background-color: #cc0000;
-                color: white;
-                font-size: 16px;
-            }
-            QPushButton#action_btn:hover {
-                background-color: #ff0000;
-            }
-            QPushButton#action_btn:disabled {
+            /* 일반 버튼 (조회 등) */
+            QPushButton {
                 background-color: #333333;
-                color: #666666;
+                border: none;
+                border-radius: 8px;
+                color: #FFFFFF;
+                font-size: 15px;
+                font-weight: bold;
             }
-
-            QPushButton#cancel_btn {
+            QPushButton:hover {
                 background-color: #444444;
-                color: white;
             }
-            QPushButton#cancel_btn:hover {
-                background-color: #666666;
+            
+            /* 정보 카드 */
+            QFrame#InfoCard {
+                background-color: #212121;
+                border-radius: 12px;
+                border: none;
             }
 
-            /* Labels */
-            QLabel#title {
+            /* 프로그래스 카드 */
+            QFrame#ProgressCard {
+                background-color: #252525;
+                border-radius: 12px;
+                border: 1px solid #333333;
+            }
+            
+            /* 텍스트 라벨 */
+            QLabel#TitleLabel {
                 font-size: 18px;
                 font-weight: bold;
-                color: #ffffff;
+                color: #FFFFFF;
             }
-            QLabel#status {
-                color: #aaaaaa;
+            
+            QLabel#ChannelLabel {
+                font-size: 14px;
+                color: #AAAAAA;
+            }
+            
+            QLabel#StatsLabel {
                 font-size: 13px;
-                margin-top: 10px;
+                color: #888888;
             }
 
-            /* GroupBox */
-            QGroupBox {
-                border: 1px solid #303030;
-                border-radius: 8px;
-                margin-top: 20px;
-                padding-top: 15px;
-                font-weight: bold;
-                color: #aaaaaa;
+            QLabel#DownloadTitle {
+                font-size: 16px;
+                color: #EEEEEE;
             }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px;
+            
+            QLabel#PercentageLabel {
+                font-size: 14px;
+                color: #CCCCCC;
             }
-
-            /* Radio Button */
+            
+            /* 라디오 버튼 */
             QRadioButton {
-                padding: 5px;
+                color: #AAAAAA;
+                font-size: 14px;
+                spacing: 8px;
             }
             QRadioButton::indicator {
                 width: 18px;
                 height: 18px;
-                border-radius: 9px;
+                border-radius: 10px;
                 border: 2px solid #555555;
+                background-color: #252525;
             }
             QRadioButton::indicator:checked {
-                background-color: #ff0000;
-                border: 2px solid #ff0000;
+                background-color: #D32F2F;
+                border: 2px solid #D32F2F;
             }
-
-            /* Progress Bar */
+            QRadioButton:hover {
+                color: #FFFFFF;
+            }
+            
+            /* 하단 다운로드 버튼 (빨간색 강조) */
+            QPushButton#DownloadBtn {
+                background-color: #D32F2F; 
+                color: #FFFFFF;
+                font-size: 18px;
+                font-weight: bold;
+                border-radius: 10px;
+            }
+            QPushButton#DownloadBtn:hover {
+                background-color: #F44336;
+            }
+            QPushButton#DownloadBtn:disabled {
+                background-color: #333333;
+                color: #777777;
+            }
+            
+            /* 스타일링된 프로그래스 바 (Gradient) */
             QProgressBar {
-                background-color: #121212;
+                background-color: #404040;
                 border: none;
-                border-radius: 4px;
-                height: 8px;
-                text-align: center;
+                border-radius: 5px;
             }
             QProgressBar::chunk {
-                background-color: #ff0000;
-                border-radius: 4px;
+                background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #3b82f6, stop:1 #2dd4bf);
+                border-radius: 5px;
+            }
+            
+            QLabel#StatusLabel {
+                color: #AAAAAA;
+                font-size: 14px;
+                margin-bottom: 5px;
             }
         """)
 
+    @pyqtSlot()
     def search_video(self):
-        """
-        입력된 URL로 비디오 정보를 검색합니다.
-        기존 UI 상태를 초기화하고 정보 조회 스레드를 시작합니다.
-        """
         url = self.url_input.text().strip()
         if not url:
-            QMessageBox.warning(self, 'Error', 'URL을 입력해주세요.')
             return
 
-        # Reset UI
-        self.info_frame.setVisible(False) # Hide info card initially
-        self.thumbnail_label.clear()
-        self.title_label.setText("-")
-        self.view_count_label.setText("👁️ 조회수: -")
-        self.like_count_label.setText("👍 좋아요: -")
-        self.download_btn.setEnabled(False)
-        self.current_video_info = None
-        
-        # Clear Quality Options
-        self.quality_group.setVisible(False)
-        for i in reversed(range(self.quality_layout.count())): 
-            self.quality_layout.itemAt(i).widget().setParent(None)
-        
-        # Reset Buttons
-        self.download_btn.setVisible(True)
-        self.cancel_btn.setVisible(False)
-        self.progress_bar.setVisible(False)
-
+        self.status_label.setText("검색 중...")
         self.search_btn.setEnabled(False)
-        self.status_label.setText("🔍 정보를 가져오는 중입니다...")
+        self.info_frame.setVisible(False)
+        self.quality_frame.setVisible(False)
+        self.progress_frame.setVisible(False)
+        self.download_btn.setEnabled(False)
         
+        # Remove existing radio buttons
+        for i in reversed(range(self.quality_layout.count())): 
+            item = self.quality_layout.itemAt(i)
+            if item.widget():
+                item.widget().setParent(None)
+
         self.worker = Worker(url, mode='info')
         self.worker.finished.connect(self.handle_info_result)
         self.worker.error.connect(self.handle_error)
         self.worker.start()
 
+    @pyqtSlot(dict)
     def handle_info_result(self, info):
-        """
-        비디오 정보 조회 성공 시 호출됩니다.
-        썸네일, 제목, 조회수 등을 표시하고 다운로드 옵션을 생성합니다.
-        """
         self.search_btn.setEnabled(True)
-        self.status_label.setText("✅ 조회 완료")
+        self.status_label.setText("")
         self.current_video_info = info
-        self.info_frame.setVisible(True) # Show info card
         
-        # Update Labels
-        self.title_label.setText(info.get('title', '-'))
-        self.view_count_label.setText(f"👁️ 조회수: {info.get('view_count', 0):,}")
-        self.like_count_label.setText(f"👍 좋아요: {info.get('like_count', 0):,}")
-
-        # Update Thumbnail
-        thumbnail_url = info.get('thumbnail')
-        if thumbnail_url:
+        # 정보 표시
+        self.title_label.setText(info.get('title', 'Unknown Title'))
+        self.channel_label.setText(info.get('uploader', 'Unknown Channel'))
+        
+        likes = info.get('like_count', 0)
+        views = info.get('view_count', 0)
+        self.stats_label.setText(f"👍 {likes:,}  •  👁 {views:,}")
+        
+        # 썸네일 로드
+        thumb_url = info.get('thumbnail')
+        if thumb_url:
             try:
-                data = requests.get(thumbnail_url).content
+                data = requests.get(thumb_url).content
                 pixmap = QPixmap()
                 pixmap.loadFromData(data)
+                self.thumbnail_label.setPixmap(pixmap.scaled(
+                    self.thumbnail_label.size(), 
+                    Qt.AspectRatioMode.KeepAspectRatioByExpanding, 
+                    Qt.TransformationMode.SmoothTransformation
+                ))
+            except:
+                self.thumbnail_label.setText("No Image")
                 
-                # Scale to fit fixed size (320x180) - 16:9 ratio
-                scaled_pixmap = pixmap.scaled(self.thumbnail_label.size(), 
-                                            Qt.AspectRatioMode.KeepAspectRatioByExpanding, 
-                                            Qt.TransformationMode.SmoothTransformation)
-                self.thumbnail_label.setPixmap(scaled_pixmap)
-            except Exception:
-                self.thumbnail_label.setText("이미지 없음")
-
-        # Create Radio Buttons for Resolutions
+        # 화질 선택 옵션 생성
         resolutions = info.get('resolutions', [])
         if resolutions:
-            self.quality_group.setVisible(True)
             for res in resolutions:
                 rb = QRadioButton(f"{res}p")
                 self.quality_layout.addWidget(rb)
                 self.quality_btn_group.addButton(rb, res)
             
-            # Add Audio Only Option
-            audio_rb = QRadioButton("MP3 오디오")
+            # MP3 옵션 추가
+            audio_rb = QRadioButton("MP3 Audio")
             self.quality_layout.addWidget(audio_rb)
-            self.quality_btn_group.addButton(audio_rb, 1)
-
-            # Select the highest quality by default
+            self.quality_btn_group.addButton(audio_rb, 1) # MP3 ID = 1
+            
             if self.quality_layout.count() > 0:
                 self.quality_layout.itemAt(0).widget().setChecked(True)
-        
-        self.download_btn.setEnabled(True)
-        self.download_btn.setText("다운로드 시작")
+                
+            self.quality_frame.setVisible(True)
 
+        self.info_frame.setVisible(True)
+        self.download_btn.setEnabled(True)
+
+    @pyqtSlot(str)
+    def handle_error(self, msg):
+        self.search_btn.setEnabled(True)
+        self.download_btn.setEnabled(True if self.current_video_info else False)
+        self.status_label.setText("오류 발생")
+        self.progress_frame.setVisible(False)
+        self.info_frame.setVisible(True if self.current_video_info else False)
+        QMessageBox.warning(self, "Error", msg)
+
+    @pyqtSlot()
     def download_video(self):
-        """
-        사용자가 선택한 옵션으로 비디오/오디오 다운로드를 시작합니다.
-        UI를 다운로드 중 상태로 변경하고 다운로드 스레드를 시작합니다.
-        """
         if not self.current_video_info:
             return
-
+            
         url = self.url_input.text().strip()
         
-        # Get Selected Resolution
+        # 선택된 화질 확인
         selected_id = self.quality_btn_group.checkedId()
         format_str = 'best'
+        quality_label = 'best'
         
         if selected_id == 1:
             format_str = 'audio'
-            status_msg = "🎵 오디오 다운로드 중... (MP3)"
+            quality_label = 'audio'
         elif selected_id > 1:
             format_str = f'bestvideo[height={selected_id}]+bestaudio/best[height={selected_id}]'
-            status_msg = f"🎬 다운로드 중... ({selected_id}p)"
-        else:
-             status_msg = "⬇️ 다운로드 중..."
+            quality_label = f'{selected_id}p'
 
-        # Toggle Buttons
+        # UI 전환 logic: 정보창/버튼 숨기고 프로그래스바 카드 보이기
+        self.info_frame.setVisible(False)
+        self.quality_frame.setVisible(False)
         self.download_btn.setVisible(False)
-        self.cancel_btn.setVisible(True)
         
-        # Show Progress Bar
-        self.progress_bar.setVisible(True)
-        self.progress_bar.setValue(0)
+        self.progress_frame.setVisible(True)
+        self.styled_progress_bar.setValue(0)
+        self.percentage_label.setText("0% Downloaded")
+        self.download_title_label.setText(f"{self.current_video_info.get('title', 'Video')} ({quality_label})")
+        self.status_label.setText("다운로드 시작...")
         
-        self.status_label.setText(status_msg)
-
-        self.worker = Worker(url, mode='download', format_str=format_str)
-        self.worker.finished.connect(self.handle_download_result)
+        self.worker = Worker(url, mode='download', format_str=format_str, quality_label=quality_label)
+        self.worker.finished.connect(self.handle_download_complete)
         self.worker.error.connect(self.handle_error)
         self.worker.progress.connect(self.update_progress)
         self.worker.start()
 
-    def update_progress(self, percent):
-        """다운로드 진행률 바를 업데이트합니다."""
-        self.progress_bar.setValue(percent)
+    @pyqtSlot(int)
+    def update_progress(self, val):
+        self.styled_progress_bar.setValue(val)
+        self.percentage_label.setText(f"{val}% Downloaded")
 
-    def cancel_download(self):
-        """진행 중인 다운로드를 취소하고 UI를 초기화합니다."""
-        if self.worker and self.worker.isRunning():
-            self.worker.terminate()
-            self.worker.wait()
+    @pyqtSlot(dict)
+    def handle_download_complete(self, result):
+        self.status_label.setText("다운로드 완료!")
+        self.percentage_label.setText("100% Downloaded")
+        self.styled_progress_bar.setValue(100)
         
-        self.status_label.setText("⛔ 다운로드 취소됨")
+        QMessageBox.information(self, "Success", "다운로드가 완료되었습니다.")
+        
+        # UI 복귀
+        self.progress_frame.setVisible(False)
+        self.info_frame.setVisible(True)
+        self.quality_frame.setVisible(True)
         self.download_btn.setVisible(True)
-        self.cancel_btn.setVisible(False)
-        self.progress_bar.setVisible(False)
-        self.download_btn.setEnabled(True)
-
-    def handle_download_result(self, result):
-        """다운로드 완료 시 호출되어 성공 메시지를 표시합니다."""
-        self.download_btn.setVisible(True)
-        self.cancel_btn.setVisible(False)
-        self.progress_bar.setVisible(False)
-        self.download_btn.setEnabled(True)
-        self.status_label.setText("✨ 다운로드 완료!")
-        QMessageBox.information(self, '완료', '다운로드가 완료되었습니다!\n다운로드 폴더를 확인하세요.')
-
-    def handle_error(self, error_msg):
-        """에러 발생 시 호출되어 에러 메시지를 표시하고 UI를 복구합니다."""
-        self.search_btn.setEnabled(True)
-        self.download_btn.setVisible(True)
-        self.cancel_btn.setVisible(False)
-        self.progress_bar.setVisible(False)
-        self.download_btn.setEnabled(True if self.current_video_info else False)
-        self.status_label.setText("⚠️ 오류 발생")
-        QMessageBox.critical(self, 'Error', f"오류가 발생했습니다:\n{error_msg}")

@@ -7,17 +7,19 @@ class Worker(QThread):
     error = pyqtSignal(str)
     progress = pyqtSignal(int)
 
-    def __init__(self, url, mode='info', format_str=None):
+    def __init__(self, url, mode='info', format_str=None, quality_label='best'):
         """
         워커 스레드를 초기화합니다.
         :param url: 유튜브 동영상 URL
         :param mode: 'info' (정보 조회) 또는 'download' (다운로드)
-        :param format_str: 다운로드 포맷 문자열 (비디오 해상도 또는 오디오)
+        :param format_str: 다운로드 포맷 문자열
+        :param quality_label: 파일명에 사용될 화질 라벨 (예: '1080p', 'audio')
         """
         super().__init__()
         self.url = url
         self.mode = mode
         self.format_str = format_str
+        self.quality_label = quality_label
 
     def run(self):
         """
@@ -41,9 +43,12 @@ class Worker(QThread):
                 # Get Downloads folder
                 download_path = os.path.join(os.path.expanduser("~"), "Downloads")
                 
-                # Base Options
+                # Base Options with custom filename
+                # Use standard string formatting for the label, let yt-dlp handle title and ext
+                filename_tmpl = f'%(title)s_{self.quality_label}.%(ext)s'
+                
                 opts = {
-                    'outtmpl': os.path.join(download_path, '%(title)s.%(ext)s'),
+                    'outtmpl': os.path.join(download_path, filename_tmpl),
                     'progress_hooks': [self.progress_hook],
                 }
 
