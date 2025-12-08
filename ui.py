@@ -143,7 +143,7 @@ class YouTubeDownloader(QWidget):
         main_layout.addWidget(self.status_label)
 
         # 3. 하단: 다운로드 버튼
-        self.download_btn = QPushButton("⬇ 다운로드")
+        self.download_btn = QPushButton("다운로드")
         self.download_btn.setObjectName("DownloadBtn")
         self.download_btn.setFixedHeight(60)
         self.download_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -151,6 +151,29 @@ class YouTubeDownloader(QWidget):
         self.download_btn.setEnabled(False) 
         
         main_layout.addWidget(self.download_btn)
+        
+        # 3-1. 하단 (다운로드 중): 취소 버튼 (초기엔 숨김)
+        self.cancel_btn = QPushButton("다운로드 취소") # Label changed as requested
+        self.cancel_btn.setObjectName("CancelBtn")
+        self.cancel_btn.setFixedHeight(60) # Same height as download button
+        self.cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.cancel_btn.clicked.connect(self.cancel_download)
+        self.cancel_btn.setVisible(False)
+        self.cancel_btn.setStyleSheet("""
+            QPushButton#CancelBtn {
+                background-color: #555555;
+                color: #FFFFFF;
+                border: none;
+                border-radius: 10px;
+                font-size: 18px;
+                font-weight: bold;
+            }
+            QPushButton#CancelBtn:hover {
+                background-color: #666666;
+            }
+        """)
+        
+        main_layout.addWidget(self.cancel_btn)
         
         self.apply_styles()
 
@@ -297,6 +320,7 @@ class YouTubeDownloader(QWidget):
         self.quality_frame.setVisible(False)
         self.progress_frame.setVisible(False)
         self.download_btn.setEnabled(False)
+        self.cancel_btn.setVisible(False) # Ensure cancel is hidden
         
         # Remove existing radio buttons
         for i in reversed(range(self.quality_layout.count())): 
@@ -358,11 +382,14 @@ class YouTubeDownloader(QWidget):
 
         self.info_frame.setVisible(True)
         self.download_btn.setEnabled(True)
+        self.download_btn.setVisible(True)
 
     @pyqtSlot(str)
     def handle_error(self, msg):
         self.search_btn.setEnabled(True)
         self.download_btn.setEnabled(True if self.current_video_info else False)
+        self.download_btn.setVisible(True)
+        self.cancel_btn.setVisible(False)
         self.status_label.setText("오류 발생")
         self.progress_frame.setVisible(False)
         self.info_frame.setVisible(True if self.current_video_info else False)
@@ -387,10 +414,14 @@ class YouTubeDownloader(QWidget):
             format_str = f'bestvideo[height={selected_id}]+bestaudio/best[height={selected_id}]'
             quality_label = f'{selected_id}p'
 
-        # UI 전환 logic: 정보창/버튼 숨기고 프로그래스바 카드 보이기
+        # UI 전환 logic
         self.info_frame.setVisible(False)
         self.quality_frame.setVisible(False)
+        
+        # Swap Download/Cancel buttons
         self.download_btn.setVisible(False)
+        self.cancel_btn.setVisible(True)
+        self.cancel_btn.setEnabled(True)
         
         self.progress_frame.setVisible(True)
         self.styled_progress_bar.setValue(0)
@@ -404,6 +435,13 @@ class YouTubeDownloader(QWidget):
         self.worker.progress.connect(self.update_progress)
         self.worker.start()
 
+    @pyqtSlot()
+    def cancel_download(self):
+        if self.worker and self.worker.isRunning():
+            self.status_label.setText("취소 중...")
+            self.worker.cancel()
+            self.cancel_btn.setEnabled(False)  # Prevent multiple clicks
+
     @pyqtSlot(int)
     def update_progress(self, val):
         self.styled_progress_bar.setValue(val)
@@ -411,14 +449,21 @@ class YouTubeDownloader(QWidget):
 
     @pyqtSlot(dict)
     def handle_download_complete(self, result):
-        self.status_label.setText("다운로드 완료!")
-        self.percentage_label.setText("100% Downloaded")
-        self.styled_progress_bar.setValue(100)
+        # UI 복귀 (버튼 스왑 포함)
+        self.cancel_btn.setVisible(False)
+        self.download_btn.setVisible(True)
         
-        QMessageBox.information(self, "Success", "다운로드가 완료되었습니다.")
+        if result.get('status') == 'cancelled':
+            self.status_label.setText("다운로드 취소됨")
+            QMessageBox.information(self, "Cancelled", "다운로드가 취소되었습니다.")
+        else:
+            self.status_label.setText("다운로드 완료!")
+            self.percentage_label.setText("100% Downloaded")
+            self.styled_progress_bar.setValue(100)
+            QMessageBox.information(self, "Success", "다운로드가 완료되었습니다.")
         
         # UI 복귀
         self.progress_frame.setVisible(False)
         self.info_frame.setVisible(True)
         self.quality_frame.setVisible(True)
-        self.download_btn.setVisible(True)
+        self.download_btn.setEnabled(True)

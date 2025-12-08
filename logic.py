@@ -20,6 +20,11 @@ class Worker(QThread):
         self.mode = mode
         self.format_str = format_str
         self.quality_label = quality_label
+        self.is_cancelled = False
+
+    def cancel(self):
+        """다운로드 작업을 취소합니다."""
+        self.is_cancelled = True
 
     def run(self):
         """
@@ -78,6 +83,7 @@ class Worker(QThread):
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 if self.mode == 'info':
+                    if self.is_cancelled: return
                     info = ydl.extract_info(self.url, download=False)
                     
                     # Extract unique resolutions
@@ -91,16 +97,24 @@ class Worker(QThread):
                     self.finished.emit(info)
                 elif self.mode == 'download':
                     ydl.download([self.url])
-                    self.finished.emit({'status': 'downloaded'})
+                    if not self.is_cancelled:
+                         self.finished.emit({'status': 'downloaded'})
 
         except Exception as e:
-            self.error.emit(str(e))
+            if self.is_cancelled:
+                print("Download cancelled by user.")
+                self.finished.emit({'status': 'cancelled'})
+            else:
+                self.error.emit(str(e))
 
     def progress_hook(self, d):
         """
         yt-dlp 다운로드 진행 상황을 처리하는 훅 함수입니다.
         진행률을 계산하여 메인 스레드로 시그널을 보냅니다.
         """
+        if self.is_cancelled:
+            raise Exception("Download cancelled")
+
         if d['status'] == 'downloading':
             total = d.get('total_bytes') or d.get('total_bytes_estimate')
             downloaded = d.get('downloaded_bytes', 0)
