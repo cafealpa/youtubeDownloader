@@ -33,7 +33,12 @@ class Worker(QThread):
         """
         try:
             # Use absolute path for FFmpeg
-            basedir = os.path.dirname(os.path.abspath(__file__))
+            import sys
+            if getattr(sys, 'frozen', False):
+                basedir = sys._MEIPASS
+            else:
+                basedir = os.path.dirname(os.path.abspath(__file__))
+            
             ffmpeg_path = os.path.join(basedir, 'ffmpeg.exe')
             
             print(f"DEBUG: Mode={self.mode}, Format={self.format_str}")
