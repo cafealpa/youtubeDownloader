@@ -441,12 +441,28 @@ class YouTubeDownloader(QWidget):
     @pyqtSlot(str)
     def handle_error(self, msg):
         self.search_btn.setEnabled(True)
-        self.download_btn.setEnabled(True if self.current_video_info else False)
+        
+        # 검색 오류 시 초기화
+        if self.worker and self.worker.mode == 'info':
+            self.current_video_info = None
+            self.title_label.setText("-")
+            self.channel_label.setText("-")
+            self.stats_label.setText("-")
+            self.thumbnail_label.clear()
+            self.info_frame.setVisible(False)
+            self.quality_frame.setVisible(False)
+            self.guide_frame.setVisible(True)
+            self.download_btn.setEnabled(False)
+        else:
+            # 다운로드 오류 등: 기존 정보 유지
+            self.download_btn.setEnabled(True if self.current_video_info else False)
+            self.info_frame.setVisible(True if self.current_video_info else False)
+
         self.download_btn.setVisible(True)
         self.cancel_btn.setVisible(False)
         self.status_label.setText("오류 발생")
         self.progress_frame.setVisible(False)
-        self.info_frame.setVisible(True if self.current_video_info else False)
+        
         QMessageBox.warning(self, "Error", msg)
 
     @pyqtSlot()
