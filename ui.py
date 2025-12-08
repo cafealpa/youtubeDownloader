@@ -33,6 +33,7 @@ class YouTubeDownloader(QWidget):
         self.url_input = QLineEdit()
         self.url_input.setPlaceholderText('Paste YouTube Video URL')
         self.url_input.setFixedHeight(50)
+        self.url_input.returnPressed.connect(self.search_video)
         
         self.search_btn = QPushButton('조회')
         self.search_btn.setFixedSize(100, 50)
