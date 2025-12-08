@@ -43,6 +43,30 @@ class YouTubeDownloader(QWidget):
         search_layout.addWidget(self.search_btn)
         
         main_layout.addLayout(search_layout)
+
+        # 1-1. 사용법 가이드 (초기 실행 시 표시)
+        self.guide_frame = QFrame()
+        self.guide_frame.setObjectName("GuideFrame")
+        guide_layout = QVBoxLayout(self.guide_frame)
+        guide_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        guide_layout.setSpacing(10)
+        
+        guide_title = QLabel("사용 방법")
+        guide_title.setObjectName("GuideTitle")
+        guide_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        guide_desc = QLabel(
+            "1. 유튜브 영상 URL을 입력하세요.\n"
+            "2. '조회' 버튼을 클릭하여 영상 정보를 확인하세요.\n"
+            "3. 원하는 화질을 선택하고 다운로드하세요."
+        )
+        guide_desc.setObjectName("GuideDesc")
+        guide_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        guide_layout.addWidget(guide_title)
+        guide_layout.addWidget(guide_desc)
+        
+        main_layout.addWidget(self.guide_frame)
         
         # 2. 중단: 비디오 정보 카드 (카드 스타일)
         self.info_frame = QFrame()
@@ -211,7 +235,27 @@ class YouTubeDownloader(QWidget):
             QPushButton:hover {
                 background-color: #444444;
             }
-            
+
+            /* 사용법 가이드 */
+            QFrame#GuideFrame {
+                background-color: #1E1E1E;
+                border-radius: 12px;
+                border: 1px dashed #444444;
+                padding: 20px;
+                margin: 20px;
+            }
+            QLabel#GuideTitle {
+                font-size: 18px;
+                font-weight: bold;
+                color: #64B5F6;
+                margin-bottom: 5px;
+            }
+            QLabel#GuideDesc {
+                font-size: 14px;
+                color: #CCCCCC;
+                line-height: 1.6;
+            }
+
             /* 정보 카드 */
             QFrame#InfoCard {
                 background-color: #212121;
@@ -316,6 +360,7 @@ class YouTubeDownloader(QWidget):
 
         self.status_label.setText("검색 중...")
         self.search_btn.setEnabled(False)
+        self.guide_frame.setVisible(False)  # 가이드 숨김
         self.info_frame.setVisible(False)
         self.quality_frame.setVisible(False)
         self.progress_frame.setVisible(False)
