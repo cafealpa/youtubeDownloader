@@ -75,5 +75,45 @@ pip install -U "yt-dlp[default]"
 2. 영상 정보가 뜨면 원하는 **화질** 또는 **오디오(MP3)** 옵션을 선택합니다.
 3. **[다운로드 시작]** 버튼을 누르면 `Downloads` 폴더에 자동으로 저장됩니다.
 
+## 🔧 유지보수: 라이브러리 업데이트 및 재배포
+
+YouTube는 수시로 사이트 구조를 바꾸기 때문에, 몇 달 지나면 다운로드가 다시 실패할 수 있습니다.
+그 경우 아래 절차대로 yt-dlp를 업데이트하고 exe를 다시 만들어 배포하면 됩니다.
+(모든 명령은 프로젝트 루트에서 실행)
+
+### 1. 라이브러리 업데이트
+```bash
+.venv\Scripts\python -m pip install -U "yt-dlp[default]" yt-dlp-ejs
+```
+
+업데이트 후 `python main.py`로 실행해서 다운로드가 되는지 먼저 확인합니다.
+
+### 2. exe 재빌드
+```bash
+.venv\Scripts\pyinstaller YouTubeDownloader.spec --noconfirm
+```
+
+결과물은 `dist\YouTubeDownloader\` 폴더에 생성됩니다. `YouTubeDownloader.exe`를 실행해 동작을 확인합니다.
+
+### 3. 배포 (GitHub 릴리즈)
+버전은 `1.1.YYYYMMDD` (빌드 날짜) 형식을 사용합니다.
+
+```bash
+# dist 폴더를 zip으로 압축 (버전에 맞게 파일명 변경)
+powershell Compress-Archive -Path dist\YouTubeDownloader -DestinationPath YouTubeDownloader-1.1.YYYYMMDD-win64.zip
+
+# 변경 사항 커밋/푸시 후 릴리즈 생성
+git add -u
+git commit -m "chore: Update yt-dlp"
+git push origin main
+gh release create v1.1.YYYYMMDD --title "YouTube Downloader 1.1.YYYYMMDD" --notes "yt-dlp 업데이트" YouTubeDownloader-1.1.YYYYMMDD-win64.zip
+```
+
+### 참고: 내장 바이너리 업데이트
+- **deno.exe**: 오래되어 문제가 생기면 https://github.com/denoland/deno/releases 에서
+  `deno-x86_64-pc-windows-msvc.zip`을 받아 프로젝트 루트의 `deno.exe`를 교체 후 재빌드합니다.
+- **ffmpeg.exe / ffprobe.exe**: `py install_ffmpeg.py`로 다시 받을 수 있습니다.
+- 새 바이너리는 재빌드 시 exe에 자동으로 포함됩니다 (`YouTubeDownloader.spec`에 정의됨).
+
 ---
 Developed with **Vibe Coding** technology.
