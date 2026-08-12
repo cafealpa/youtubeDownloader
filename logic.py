@@ -1,6 +1,48 @@
 import os
+import shutil
+import sys
+from importlib.util import find_spec
 import yt_dlp
 from PyQt6.QtCore import QThread, pyqtSignal
+from yt_dlp.version import __version__ as YT_DLP_VERSION
+
+
+SUPPORTED_JS_RUNTIMES = {
+    'deno': ('deno',),
+    'node': ('node',),
+    'bun': ('bun',),
+    'quickjs': ('qjs', 'quickjs'),
+}
+
+
+def get_base_dir():
+    """번들 리소스(ffmpeg, deno 등)가 위치한 디렉터리를 반환합니다."""
+    if getattr(sys, 'frozen', False):
+        return sys._MEIPASS
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def detect_js_runtimes():
+    runtimes = {}
+
+    # 앱에 내장된 deno.exe를 최우선으로 사용 (별도 설치 불필요)
+    bundled_deno = os.path.join(get_base_dir(), 'deno.exe')
+    if os.path.isfile(bundled_deno):
+        runtimes['deno'] = {'path': bundled_deno}
+
+    for runtime_name, candidates in SUPPORTED_JS_RUNTIMES.items():
+        if runtime_name in runtimes:
+            continue
+        for candidate in candidates:
+            runtime_path = shutil.which(candidate)
+            if runtime_path:
+                runtimes[runtime_name] = {'path': runtime_path}
+                break
+    return runtimes
+
+
+def has_yt_dlp_ejs():
+    return find_spec('yt_dlp_ejs') is not None
 
 class Worker(QThread):
     finished = pyqtSignal(dict)
@@ -32,22 +74,22 @@ class Worker(QThread):
         FFmpeg 경로를 설정하고 yt-dlp를 사용하여 정보 조회 또는 다운로드를 수행합니다.
         """
         try:
-            # Use absolute path for FFmpeg
-            import sys
-            if getattr(sys, 'frozen', False):
-                basedir = sys._MEIPASS
-            else:
-                basedir = os.path.dirname(os.path.abspath(__file__))
-            
-            ffmpeg_path = os.path.join(basedir, 'ffmpeg.exe')
+            ffmpeg_path = os.path.join(get_base_dir(), 'ffmpeg.exe')
+            js_runtimes = detect_js_runtimes()
+            ejs_installed = has_yt_dlp_ejs()
             
             print(f"DEBUG: Mode={self.mode}, Format={self.format_str}")
             print(f"DEBUG: FFmpeg Path={ffmpeg_path}")
+            print(f"DEBUG: JS Runtimes={js_runtimes}")
+            print(f"DEBUG: yt-dlp Version={YT_DLP_VERSION}")
+            print(f"DEBUG: yt-dlp-ejs Installed={ejs_installed}")
 
             ydl_opts = {
                 'quiet': True,
                 'no_warnings': True,
                 'ffmpeg_location': ffmpeg_path,
+                'js_runtimes': js_runtimes,
+                'remote_components': ['ejs:github'],
             }
             if self.mode == 'download':
                 # Get Downloads folder
@@ -110,7 +152,31 @@ class Worker(QThread):
                 print("Download cancelled by user.")
                 self.finished.emit({'status': 'cancelled'})
             else:
-                self.error.emit(str(e))
+                self.error.emit(self._format_error_message(str(e)))
+
+    def _format_error_message(self, message):
+        lower_message = message.lower()
+        if 'http error 403' in lower_message or 'unable to download video data' in lower_message:
+            available = ', '.join(detect_js_runtimes().keys()) or '없음'
+            return (
+                "YouTube에서 403 오류가 발생했습니다.\n\n"
+                f"- 현재 감지된 JS 런타임: {available}\n"
+                f"- 현재 yt-dlp 버전: {YT_DLP_VERSION}\n\n"
+                "최근 YouTube는 yt-dlp 최신 버전만으로는 부족하고, "
+                "yt-dlp-ejs 및 JavaScript 런타임 구성이 필요할 수 있습니다.\n"
+                "1. `pip install -U \"yt-dlp[default]\"`로 업데이트\n"
+                "2. Node.js 또는 Deno 설치\n"
+                "3. 앱을 다시 실행해 보세요.\n\n"
+                f"원본 오류: {message}"
+            )
+
+        if 'no supported javascript runtime could be found' in lower_message:
+            return (
+                "지원되는 JavaScript 런타임을 찾지 못했습니다.\n"
+                "Node.js 또는 Deno를 설치한 뒤 다시 실행해 주세요."
+            )
+
+        return message
 
     def progress_hook(self, d):
         """

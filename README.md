@@ -36,6 +36,16 @@ py -m venv .venv
 pip install -r requirements.txt
 ```
 
+### 2-1. JavaScript 런타임 (Deno 내장)
+2026년 현재 YouTube 다운로드에는 JavaScript 런타임이 필수입니다.
+이 프로젝트는 프로젝트 루트의 `deno.exe`를 자동으로 사용하므로 별도 설치가 필요 없습니다.
+
+`deno.exe`가 없는 경우 아래에서 받아 프로젝트 루트에 두면 됩니다.
+```text
+https://github.com/denoland/deno/releases (deno-x86_64-pc-windows-msvc.zip)
+```
+시스템에 `deno`, `node`, `bun`, `quickjs`가 설치되어 있으면 그것도 자동 탐지합니다.
+
 ### 3. FFmpeg 설치
 고화질 영상 합치기 및 MP3 변환을 위해 FFmpeg가 필요합니다.
 포함된 스크립트를 실행하면 자동으로 설치됩니다.
@@ -47,6 +57,18 @@ py install_ffmpeg.py
 ```bash
 py main.py
 ```
+
+## 문제 해결
+
+### 403 Forbidden 오류가 나는 경우
+다음 순서로 확인하세요.
+
+```bash
+pip install -U "yt-dlp[default]"
+```
+
+그리고 프로젝트 루트에 `deno.exe`가 있는지 확인하세요 (내장 JS 런타임).
+없으면 시스템에 설치된 `deno`, `node`, `bun`, `quickjs`를 자동 탐지하며, 둘 다 없으면 YouTube 다운로드가 실패할 수 있습니다.
 
 ## 📝 사용법
 1. 상단 입력창에 유튜브 동영상 URL을 붙여넣고 **[조회]** 버튼을 누릅니다.
