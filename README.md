@@ -5,6 +5,10 @@
 PyQt6와 yt-dlp를 기반으로 제작된 모던하고 강력한 유튜브 다운로더입니다.
 직관적인 다크 테마 UI와 강력한 다운로드 기능을 제공합니다.
 
+현재 배포 버전은 **1.1.20260930**입니다. Windows 실행 파일은
+[최신 GitHub 릴리스](https://github.com/cafealpa/youtubeDownloader/releases/latest)에서 받을 수 있습니다.
+ZIP을 모두 압축 해제한 뒤 `YouTubeDownloader.exe`를 실행하세요.
+
 ## ✨ 주요 기능
 - **🔍 간편한 조회**: 유튜브 링크만 넣으면 썸네일과 영상 정보를 즉시 확인
 - **🎨 모던 다크 테마**: 눈이 편안하고 세련된 디자인 (유튜브 프리미엄 스타일)
@@ -104,7 +108,7 @@ powershell Compress-Archive -Path dist\YouTubeDownloader -DestinationPath YouTub
 
 # 변경 사항 커밋/푸시 후 릴리즈 생성
 git add -u
-git commit -m "chore: Update yt-dlp"
+git commit -m "다운로드 라이브러리 업데이트"
 git push origin main
 gh release create v1.1.YYYYMMDD --title "YouTube Downloader 1.1.YYYYMMDD" --notes "yt-dlp 업데이트" YouTubeDownloader-1.1.YYYYMMDD-win64.zip
 ```
