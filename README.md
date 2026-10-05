@@ -5,7 +5,7 @@
 PyQt6와 yt-dlp를 기반으로 제작된 모던하고 강력한 유튜브 다운로더입니다.
 직관적인 다크 테마 UI와 강력한 다운로드 기능을 제공합니다.
 
-현재 배포 버전은 **1.1.20260930**입니다. Windows 실행 파일은
+현재 배포 버전은 **1.1.20261005**입니다. Windows 실행 파일은
 [최신 GitHub 릴리스](https://github.com/cafealpa/youtubeDownloader/releases/latest)에서 받을 수 있습니다.
 ZIP을 모두 압축 해제한 뒤 `YouTubeDownloader.exe`를 실행하세요.
 
@@ -87,7 +87,7 @@ YouTube는 수시로 사이트 구조를 바꾸기 때문에, 몇 달 지나면 
 
 ### 1. 라이브러리 업데이트
 ```bash
-.venv\Scripts\python -m pip install -U "yt-dlp[default]" yt-dlp-ejs
+.venv\Scripts\python -m pip install -U -r requirements.txt
 ```
 
 업데이트 후 `python main.py`로 실행해서 다운로드가 되는지 먼저 확인합니다.
