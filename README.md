@@ -9,7 +9,8 @@ React나 WebView2 없이 네이티브 창을 렌더링하고, yt-dlp를 sidecar�
 사용자 PC에는 Rust, Cargo, Python, Node.js 설치가 필요하지 않습니다.
 
 이 저장소의 기본 소스는 Rust 앱입니다. 이전 Python/PyQt 소스는 Git 이력에서 확인할 수 있습니다.
-기존 GitHub 공개 릴리스는 구버전이며, 이번 소스 전환만으로 새 공개 릴리스가 배포되지는 않습니다.
+Windows 실행 패키지는 [v2.0.0 릴리스](https://github.com/cafealpa/youtubeDownloader/releases/tag/v2.0.0)에서 받을 수 있습니다.
+ZIP 전체를 압축 해제한 뒤 `YouTubeDownloader.exe`를 실행하세요. `tools/` 폴더를 함께 유지해야 합니다.
 
 - 왼쪽: 검색어 또는 영상 링크 조회, 실제 썸네일과 검색 결과
 - 검색 결과는 처음 20개, `더 보기`로 다음 20개씩 추가합니다. 중복 영상은 제외하며 추가 검색 실패 시 기존 목록을 유지합니다.
@@ -82,7 +83,9 @@ cargo test --locked live_update_and_rollback -- --ignored --nocapture
 
 로컬 패키지 실행 파일은 `dist/YouTubeDownloader-Iced/YouTubeDownloader.exe`입니다.
 같은 폴더의 `tools/`와 함께 이동해야 합니다.
-공개 배포 시에는 포함한 외부 도구의 라이선스 고지와 별도 PC 실행 검증이 필요합니다.
+공개 배포용 패키지는 `scripts/package-release.ps1`로 생성합니다.
+라이선스 고지, 파일별 SHA-256 manifest 및 ZIP 체크섬을 포함합니다.
+이 스크립트는 기존 버전 폴더를 덮어쓰지 않습니다. 별도 PC 실행 검증은 아직 완료하지 않았습니다.
 
 검색 실패 시 개별 영상 링크로 재시도할 수 있습니다. YouTube 차단, 지역/로그인 제한은
 검색과 다운로드 모두에 영향을 줄 수 있습니다. 현재는 단일 영상 작업을 지원하며,
