@@ -1,4 +1,4 @@
-param([string]$Version = '2.0.0')
+﻿param([string]$Version = '2.0.0')
 $ErrorActionPreference = 'Stop'
 if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw '잘못된 버전 형식입니다.' }
 $projectRoot = Split-Path $PSScriptRoot -Parent

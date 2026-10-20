@@ -1,4 +1,4 @@
-param(
+﻿param(
     [ValidatePattern('^\d{4}\.\d{2}\.\d{2}$')]
     [string]$Version = '2026.08.19'
 )
