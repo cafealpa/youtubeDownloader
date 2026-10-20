@@ -87,6 +87,10 @@ FFmpeg linked libraries and upstream projects: https://www.gyan.dev/ffmpeg/build
         ConvertTo-Json -Depth 5 | Set-Content -LiteralPath "$folder\manifest.json" -Encoding UTF8
     $zip = Join-Path $projectRoot "dist\$name.zip"
     if (Test-Path -LiteralPath $zip) { throw "기존 ZIP이 있습니다: $zip" }
+    # Cargo crate에 포함된 1970년 파일 날짜는 ZIP에서 표현할 수 없다.
+    Get-ChildItem -LiteralPath $folder -Recurse -File | Where-Object { $_.LastWriteTime.Year -lt 1980 } | ForEach-Object {
+        $_.LastWriteTime = [datetime]'1980-01-01T00:00:00'
+    }
     Compress-Archive -LiteralPath $folder -DestinationPath $zip -CompressionLevel Optimal
     $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
     "$hash  $name.zip" | Set-Content -LiteralPath "$zip.sha256" -Encoding ASCII

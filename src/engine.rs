@@ -694,7 +694,14 @@ mod tests {
         assert!(!video.heights.is_empty());
         let output_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("target")
-            .join("검증 다운로드");
+            .join("검증 다운로드")
+            .join(
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos()
+                    .to_string(),
+            );
         let (tx, rx) = mpsc::channel();
         for format in [Format::Mp4, Format::Mp3] {
             let output = engine
