@@ -5,7 +5,7 @@
 PyQt6와 yt-dlp를 기반으로 제작된 모던하고 강력한 유튜브 다운로더입니다.
 직관적인 다크 테마 UI와 강력한 다운로드 기능을 제공합니다.
 
-현재 배포 버전은 **1.1.20261005**입니다. Windows 실행 파일은
+현재 배포 버전은 **1.1.20261020**입니다. Windows 실행 파일은
 [최신 GitHub 릴리스](https://github.com/cafealpa/youtubeDownloader/releases/latest)에서 받을 수 있습니다.
 ZIP을 모두 압축 해제한 뒤 `YouTubeDownloader.exe`를 실행하세요.
 
@@ -64,6 +64,21 @@ py main.py
 
 ## 문제 해결
 
+### 실행 직후 QtWidgets DLL 오류가 나는 경우
+`DLL load failed while importing QtWidgets: 지정된 프로시저를 찾을 수 없습니다`
+오류가 발생한 `1.1.20261005` 배포 폴더에서는 프로그램을 종료하고
+`YouTubeDownloader\_internal\icuuc.dll`의 이름을 `icuuc.dll.disabled`로 변경한 뒤
+다시 실행하세요. Windows 시스템 폴더의 DLL은 변경하지 않습니다.
+
+해당 빌드에 외부 도구의 ICU DLL이 포함되어 Windows 기본 ICU API와 충돌하는
+문제를 확인했습니다. **1.1.20261020에서 수정되었습니다.**
+수정된 spec은 Windows 제공 ICU DLL을 패키지에서 제외합니다.
+재빌드할 때는 아래처럼 기존 분석 캐시를 비우세요.
+
+```bash
+.venv\Scripts\pyinstaller YouTubeDownloader.spec --clean --noconfirm
+```
+
 ### 403 Forbidden 오류가 나는 경우
 다음 순서로 확인하세요.
 
@@ -94,7 +109,7 @@ YouTube는 수시로 사이트 구조를 바꾸기 때문에, 몇 달 지나면 
 
 ### 2. exe 재빌드
 ```bash
-.venv\Scripts\pyinstaller YouTubeDownloader.spec --noconfirm
+.venv\Scripts\pyinstaller YouTubeDownloader.spec --clean --noconfirm
 ```
 
 결과물은 `dist\YouTubeDownloader\` 폴더에 생성됩니다. `YouTubeDownloader.exe`를 실행해 동작을 확인합니다.
